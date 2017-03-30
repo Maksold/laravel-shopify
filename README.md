@@ -6,7 +6,7 @@ Laravel Shopify is a simple package which helps to build robust integration into
 
 Add package to composer.json
 
-    composer require oseintow/laravel-shopify
+    composer require maksold/laravel-shopify
 
 Add the service provider to config/app.php in the providers array.
 
