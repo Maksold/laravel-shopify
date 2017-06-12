@@ -20,6 +20,8 @@ class ShopifyApiException extends Exception
      */
     public function __construct($message, $code)
     {
+        $message = is_array($message) ? json_encode($message) : $message;
+
         parent::__construct($message, $code);
     }
 }
