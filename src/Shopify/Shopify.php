@@ -68,6 +68,20 @@ class Shopify
         return $this;
     }
 
+    public function setKey($key)
+    {
+        $this->key = $key;
+
+        return $this;
+    }
+
+    public function setSecret($secret)
+    {
+        $this->secret = $secret;
+
+        return $this;
+    }
+
     private function setXShopifyAccessToken()
     {
         return ['X-Shopify-Access-Token' => $this->accessToken];
@@ -107,11 +121,13 @@ class Shopify
     {
         $query = in_array($method, ['get','delete']) ? "query" : "json";
         $response = $this->client->request(strtoupper($method), $this->baseUrl().$uri, [
-                'headers' => array_merge($headers, $this->requestHeaders),
-                $query => $params,
-                'timeout' => 60.0,
-                'http_errors' => false
-            ]);
+            'headers' => array_merge($headers, $this->requestHeaders),
+            $query => $params,
+            'timeout' => 120.0,
+            'connect_timeout' => 120.0,
+            'http_errors' => false,
+            "verify" => false
+        ]);
 
         $this->parseResponse($response);
         $responseBody = $this->responseBody($response);
@@ -132,6 +148,46 @@ class Shopify
         $this->parseHeaders($response->getHeaders());
         $this->setStatusCode($response->getStatusCode());
         $this->setReasonPhrase($response->getReasonPhrase());
+    }
+
+    public function verifyRequest($queryParams)
+    {
+        if (is_string($queryParams)) {
+            $data = [];
+
+            $queryParams = explode('&', $queryParams);
+            foreach($queryParams as $queryParam)
+            {
+                list($key, $value) = explode('=', $queryParam);
+                $data[$key] = urldecode($value);
+            }
+
+            $queryParams = $data;
+        }
+
+        $hmac = $queryParams['hmac'] ?? '';
+
+        unset($queryParams['signature'], $queryParams['hmac']);
+
+        ksort($queryParams);
+
+        $params = collect($queryParams)->map(function($value, $key){
+            $key   = strtr($key, ['&' => '%26', '%' => '%25', '=' => '%3D']);
+            $value = strtr($value, ['&' => '%26', '%' => '%25']);
+
+            return $key . '=' . $value;
+        })->implode("&");
+
+        $calculatedHmac = hash_hmac('sha256', $params, $this->secret);
+
+        return hash_equals($hmac, $calculatedHmac);
+    }
+
+    public function verifyWebHook($data, $hmacHeader)
+    {
+        $calculatedHmac = base64_encode(hash_hmac('sha256', $data, $this->secret, true));
+
+        return ($hmacHeader == $calculatedHmac);
     }
 
     private function setStatusCode($code)

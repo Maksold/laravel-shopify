@@ -1,12 +1,12 @@
 # Laravel Shopify
 
-Laravel Shopify is a simple package which helps to build robust integration into shopify.
+Laravel Shopify is a simple package which helps to build robust integration into Shopify.
 
-##Installation
+## Installation
 
 Add package to composer.json
 
-    composer require maksold/laravel-shopify
+    composer require oseintow/laravel-shopify
 
 Add the service provider to config/app.php in the providers array.
 
@@ -30,7 +30,7 @@ Setup alias for the Facade
 ],
 ```
 
-##Configuration
+## Configuration
 
 Laravel Shopify requires connection configuration. You will need to publish vendor assets
 
@@ -38,15 +38,15 @@ Laravel Shopify requires connection configuration. You will need to publish vend
 
 This will create a shopify.php file in the config directory. You will need to set your **API_KEY** and **SECRET**
 
-##Usage
+## Usage
 
 To install/integrate a shop you will need to initiate an oauth authentication with the shopify API and this require three components.
 
 They are:
 
-    1. Shop url (eg. example.myshopify.com)
-    2. scope (eg. write_products, read_orders, etc)
-    2. redirect url (eg. http://mydomain.com/process_oauth_result)
+    1. Shop URL (eg. example.myshopify.com)
+    2. Scope (eg. write_products, read_orders, etc)
+    3. Redirect URL (eg. http://mydomain.com/process_oauth_result)
 
 This process will enable us to obtain the shops access token
 
@@ -70,18 +70,55 @@ Let's retrieve access token
 Route::get("process_oauth_result",function(\Illuminate\Http\Request $request)
 {
     $shopUrl = "example.myshopify.com";
-    $accesToken = Shopify::setShopUrl($shopUrl)->getAccessToken($request->code));
+    $accessToken = Shopify::setShopUrl($shopUrl)->getAccessToken($request->code));
 
     dd($accessToken);
+
+    // redirect to success page or billing etc.
 });
+```
+
+To verify request(hmac)
+
+```php5
+
+public function verifyRequest(Request $request)
+{
+    $queryString = $request->getQueryString();
+
+    if(Shopify::verifyRequest($queryString)){
+        logger("verification passed");
+    }else{
+        logger("verification failed");
+    }
+}
+
+```
+
+To verify webhook(hmac)
+
+```php5
+
+public function verifyWebhook(Request $request)
+{
+    $data = $request->getContent();
+    $hmacHeader = $request->server('HTTP_X_SHOPIFY_HMAC_SHA256');
+
+    if (Shopify::verifyWebHook($data, $hmacHeader)) {
+        logger("verification passed");
+    } else {
+        logger("verification failed");
+    }
+}
+
 ```
 
 To access API resource use
 
 ```php5
-Shopify::get("resource uri",["query string params"]);
-Shopify::post("resource uri",["post body"]);
-Shopify::put("resource uri",["put body"]);
+Shopify::get("resource uri", ["query string params"]);
+Shopify::post("resource uri", ["post body"]);
+Shopify::put("resource uri", ["put body"]);
 Shopify::delete("resource uri");
 ```
 
@@ -103,9 +140,9 @@ $shopify = Shopify::setShopUrl($shopUrl)->setAccessToken($accessToken);
 $products = $shopify->get("admin/products.json", ["limit"=>20, "page" => 1]);
 ```
 
-##Controller Example
+## Controller Example
 
-If you prefer to use dependency injection over facades like me, then you can inject the Facade:
+If you prefer to use dependency injection over facades like me, then you can inject the Class:
 
 ```php5
 use Illuminate\Http\Request;
@@ -136,7 +173,7 @@ class Foo
 }
 ```
 
-##Miscellaneous
+## Miscellaneous
 
 To get Response headers
 
@@ -161,17 +198,3 @@ To get response status code or status message
 Shopify::getStatusCode(); // 200
 Shopify::getReasonPhrase(); // ok
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
